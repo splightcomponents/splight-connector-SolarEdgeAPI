@@ -1,0 +1,14 @@
+name: Push component production
+on:
+  push:
+    branches:
+      - master
+jobs:
+  push-component:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: splightcomponents/splight-push-component@v1
+      with:
+        splight_access_id: ${{ secrets.PROD_SPLIGHT_ACCESS_ID }}
+        splight_secret_key: ${{ secrets.PROD_SPLIGHT_SECRET_KEY }}

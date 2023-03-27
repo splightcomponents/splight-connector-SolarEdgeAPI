@@ -1,0 +1,12 @@
+name: Push component integration
+on: workflow_dispatch
+jobs:
+  push-component:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: splightcomponents/splight-push-component@v1
+      with:
+        splight_access_id: ${{ secrets.INTEGRATION_SPLIGHT_ACCESS_ID }}
+        splight_secret_key: ${{ secrets.INTEGRATION_SPLIGHT_SECRET_KEY }}
+        splight_platform_api_host: "https://integrationapi.splight-ai.com"
