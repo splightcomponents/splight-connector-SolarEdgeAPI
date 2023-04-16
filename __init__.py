@@ -74,7 +74,6 @@ class Main(AbstractComponent):
         logger.info(f"Readers found: {self._mappings}")
 
     def start(self) -> None:
-
         self.execution_client.start(
             Task(
                 handler=self.task,
