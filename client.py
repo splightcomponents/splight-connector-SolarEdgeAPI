@@ -14,7 +14,9 @@ class SolarEdgeAPIClient:
     def __init__(self, api_key: str):
         self._api_key = api_key
 
-    def get_power(self, site_id: str, start_time: datetime, end_time: datetime) -> Dict:
+    def get_power(
+        self, site_id: str, start_time: datetime, end_time: datetime
+    ) -> Dict:
         url = f"{self._BASE_URL}/site/{site_id}/power/"
 
         start_time_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -56,7 +58,11 @@ class SolarEdgeAPIClient:
             return {}
 
     def get_inverter_data(
-        self, site_id: str, inverter_id: str, start_date: datetime, end_date: datetime
+        self,
+        site_id: str,
+        inverter_id: str,
+        start_date: datetime,
+        end_date: datetime,
     ) -> Dict:
         url = f"{self._BASE_URL}/site/{site_id}/energy/"
 

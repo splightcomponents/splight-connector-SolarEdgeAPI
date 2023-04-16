@@ -46,7 +46,8 @@ class Main(AbstractComponent):
     energy_checkpoint = (
         pytz.timezone("utc")
         .localize(
-            datetime.utcnow() - timedelta(days=_DEFAULT_CHECKPOINT_BACKWARDS_DAYS)
+            datetime.utcnow()
+            - timedelta(days=_DEFAULT_CHECKPOINT_BACKWARDS_DAYS)
         )
         .strftime("%Y-%m-%d %H:%M:%S")
     )
@@ -58,12 +59,12 @@ class Main(AbstractComponent):
         self._fetch_existing_mappings()
 
     def _fetch_existing_mappings(self):
-        self._mappings["SiteReader"]: List[SiteReader] = self.database_client.get(
-            self.custom_types.SiteReader
-        )
-        self._mappings["InverterReader"]: List[SiteReader] = self.database_client.get(
-            self.custom_types.InverterReader
-        )
+        self._mappings["SiteReader"]: List[
+            SiteReader
+        ] = self.database_client.get(self.custom_types.SiteReader)
+        self._mappings["InverterReader"]: List[
+            SiteReader
+        ] = self.database_client.get(self.custom_types.InverterReader)
 
         for mapping_type, mappings in self._mappings.items():
             for mapping in mappings:
@@ -111,9 +112,13 @@ class Main(AbstractComponent):
                         if value["value"] is not None
                     ]
                     self.datalake_client.save(instances=data_to_save)
-                    logger.info(f"Power data added length: {len(data_to_save)}")
+                    logger.info(
+                        f"Power data added length: {len(data_to_save)}"
+                    )
                 else:
-                    logger.info(f"No power data added, length: {len(data_to_save)}")
+                    logger.info(
+                        f"No power data added, length: {len(data_to_save)}"
+                    )
 
             if site_reader.resource == "energy":
                 end_date = datetime.now()
@@ -146,24 +151,35 @@ class Main(AbstractComponent):
                     if data_to_save:
                         self.energy_checkpoint = max(
                             self.energy_checkpoint,
-                            data_to_save[-1].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                            data_to_save[-1].timestamp.strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
                         )
 
-                    logger.info(f"Energy data added length: {len(data_to_save)}")
+                    logger.info(
+                        f"Energy data added length: {len(data_to_save)}"
+                    )
                 else:
-                    logger.info(f"No Energy data added, length: {len(data_to_save)}")
+                    logger.info(
+                        f"No Energy data added, length: {len(data_to_save)}"
+                    )
 
         inverter_readers_grouped_by_id = {}
         for inverter in self._mappings["InverterReader"]:
             if inverter.serial_number in inverter_readers_grouped_by_id:
-                inverter_readers_grouped_by_id[inverter.serial_number].append(inverter)
+                inverter_readers_grouped_by_id[inverter.serial_number].append(
+                    inverter
+                )
             else:
-                inverter_readers_grouped_by_id[inverter.serial_number] = [inverter]
+                inverter_readers_grouped_by_id[inverter.serial_number] = [
+                    inverter
+                ]
         logger.info(inverter_readers_grouped_by_id)
         for inverter_id in inverter_readers_grouped_by_id:
             endTime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             startTime = (
-                datetime.now() - timedelta(days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS)
+                datetime.now()
+                - timedelta(days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS)
             ).strftime("%Y-%m-%d %H:%M:%S")
             inverter_id = inverter.serial_number
             site_id = inverter.site_id
@@ -189,7 +205,8 @@ class Main(AbstractComponent):
                             timestamp=value["date"],
                         )
                         for value in data["data"]["telemetries"]
-                        if phase in value and value[phase].get(data_key) is not None
+                        if phase in value
+                        and value[phase].get(data_key) is not None
                     ]
                     logger.info(
                         f"resource:{inverter_reader.resource}------data length{len(data_to_save)}---------------------------"
@@ -229,12 +246,18 @@ class Main(AbstractComponent):
             )
 
     def handle_site_reader_create(self, reader: SiteReader):
-        return self.handle_mapping_create(self, reader, mapping_type="SiteReader")
+        return self.handle_mapping_create(
+            self, reader, mapping_type="SiteReader"
+        )
 
     def handle_inverter_reader_create(self, reader: SiteReader):
-        return self.handle_mapping_create(self, reader, mapping_type="InverterReader")
+        return self.handle_mapping_create(
+            self, reader, mapping_type="InverterReader"
+        )
 
-    def handle_site_reader_delete(self, site_attribute_to_delete: SiteReader) -> None:
+    def handle_site_reader_delete(
+        self, site_attribute_to_delete: SiteReader
+    ) -> None:
         if site_attribute_to_delete in self._mappings["SiteReader"]:
             self._mappings["SiteReader"].remove(site_attribute_to_delete)
             logger.info(
