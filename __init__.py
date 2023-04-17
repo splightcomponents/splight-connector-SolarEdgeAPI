@@ -18,6 +18,7 @@ logger = getLogger()
 # 1. Apply checkpoint to all endpoints.
 # 2. Move inverter code to SolarEdgeAPIClient.get_inverter_data(..)
 
+
 SiteReader = TypeVar("SiteReader")
 InverterReader = TypeVar("InverterReader")
 Asset = TypeVar("Asset")
@@ -66,10 +67,10 @@ class Main(AbstractComponent):
             SiteReader
         ] = self.database_client.get(self.custom_types.InverterReader)
 
-        for mapping_type, mappings in self._mappings.items():
-            for mapping in mappings:
-                pass
-                # self._checkpoints[mapping]= pytz.timezone("utc").localize(datetime.utcnow() - timedelta(days=_DEFAULT_CHECKPOINT_BACKWARDS_DAYS)).strftime('%Y-%m-%d %H:%M:%S')
+        # for mapping_type, mappings in self._mappings.items():
+        #     for mapping in mappings:
+        #         pass
+        # self._checkpoints[mapping]= pytz.timezone("utc").localize(datetime.utcnow() - timedelta(days=_DEFAULT_CHECKPOINT_BACKWARDS_DAYS)).strftime('%Y-%m-%d %H:%M:%S')
 
         logger.info(f"Readers found: {self._mappings}")
 
@@ -84,7 +85,7 @@ class Main(AbstractComponent):
 
     def task(self) -> None:
         instances = []
-        logger.info(f"Current mappings: self._mappings")
+        logger.info(f"Current mappings: {self._mappings}")
         for site_reader in self._mappings["SiteReader"]:
             if site_reader.resource == "power":
                 end_time = datetime.now()
@@ -227,32 +228,13 @@ class Main(AbstractComponent):
                         f"resource:{inverter_reader.resource}------data length{len(data_to_save)}---------------------------"
                     )
 
-    def handle_mapping_create(
-        self, reader: Union[SiteReader, InverterReader], mapping_type
-    ) -> None:
-        try:
-            self._mappings[mapping_type].append(reader)
-            logger.info(f"mapping added {self.site_attribute_to_dict(reader)}")
-            # self._checkpoints[reader] = pytz.timezone("utc").localize(datetime.utcnow(
-            # ) - timedelta(days=_DEFAULT_CHECKPOINT_BACKWARDS_DAYS)).strftime('%Y-%m-%d %H:%M:%S')
-        except Exception as e:
-            logger.error(
-                f"""
-                    SiteReader was not added succesfully due to the
-                    following error. Delete the object and try again.
-                    Error: {str(e)}
-                    """
-            )
-
     def handle_site_reader_create(self, reader: SiteReader):
-        return self.handle_mapping_create(
-            self, reader, mapping_type="SiteReader"
-        )
+        self._mappings["SiteReader"].append(reader)
+        logger.info(f"SiteReader reader added: {reader}")
 
-    def handle_inverter_reader_create(self, reader: SiteReader):
-        return self.handle_mapping_create(
-            self, reader, mapping_type="InverterReader"
-        )
+    def handle_inverter_reader_create(self, reader: InverterReader):
+        self._mappings["InverterReader"].append(reader)
+        logger.info(f"InverterReader reader added: {reader}")
 
     def handle_site_reader_delete(
         self, site_attribute_to_delete: SiteReader
@@ -270,7 +252,7 @@ class Main(AbstractComponent):
     def handle_inverter_reader_delete(
         self, site_attribute_to_delete: InverterReader
     ) -> None:
-        if site_attribute_to_delete in self._mappings["SiteReader"]:
+        if site_attribute_to_delete in self._mappings["InverterReader"]:
             self._mappings["InverterReader"].remove(site_attribute_to_delete)
             logger.info(
                 f"Deleted mapping for object_address {site_attribute_to_delete}"
