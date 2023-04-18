@@ -63,7 +63,7 @@ class Main(AbstractComponent):
             Task(
                 handler=self.task,
                 args=(),
-                period=10,
+                period=self.input.request_period,
             )
         )
 
