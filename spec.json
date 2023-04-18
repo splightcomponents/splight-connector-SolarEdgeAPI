@@ -108,8 +108,7 @@
         {
             "name": "api_key",
             "type": "str",
-            "required": true,
-            "value": "IFLVQCO7M6I9TVU4R2HW60LLZ1YWY9FK"
+            "required": true
         },
         {
             "name": "request_period",
