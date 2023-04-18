@@ -114,7 +114,7 @@
             "name": "request_period",
             "type": "int",
             "required": true,
-            "value": "600"
+            "value": 600
         }
     ],
     "output": [],
