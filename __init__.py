@@ -14,9 +14,6 @@ from .client import SolarEdgeAPIClient
 
 logger = getLogger()
 
-# TO-DO
-# 1. Apply checkpoint to all endpoints. Working in progress (working for energy, power and inverters fetching mappings, To-do: test with create mapping)
-
 
 SiteReader = TypeVar("SiteReader")
 InverterReader = TypeVar("InverterReader")
@@ -29,7 +26,6 @@ class Main(AbstractComponent):
         "SiteReader": [],
         "InverterReader": [],
     }
-
     _checkpoints = {}
     # max backward days for inverter: 7
     # max backward days for other endpoints : 30
@@ -40,16 +36,6 @@ class Main(AbstractComponent):
         super().__init__(*args, **kwargs)
         self.client = SolarEdgeAPIClient(api_key=self.input.api_key)
         self._fetch_existing_mappings()
-        for mapping_type, mappings in self._mappings.items():
-            for mapping in mappings:
-                self._checkpoints[mapping] = (
-                    pytz.timezone("utc")
-                    .localize(
-                        datetime.utcnow()
-                        - timedelta(days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS)
-                    )
-                    .strftime("%Y-%m-%d %H:%M:%S")
-                )
 
     def _fetch_existing_mappings(self):
         self._mappings["SiteReader"]: List[SiteReader] = self.database_client.get(
@@ -75,163 +61,151 @@ class Main(AbstractComponent):
             Task(
                 handler=self.task,
                 args=(),
-                period=60 * 15,
+                period=10,
             )
         )
 
     def task(self) -> None:
         logger.info(f"Current mappings: {self._mappings}")
         for site_reader in self._mappings["SiteReader"]:
-            if site_reader.resource == "power":
-                end_time = datetime.now()
-                start_time = datetime.now() - timedelta(
-                    days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS
+            if site_reader.resource not in ["power", "energy"]:
+                continue
+
+            data_to_save = self.retrieve_site_data(site_reader=site_reader)
+            if data_to_save:
+                self.datalake_client.save(instances=data_to_save)
+                self._checkpoints[site_reader] = max(
+                    self._checkpoints[site_reader],
+                    data_to_save[-1].timestamp.strftime(
+                        "%Y-%m-%d %H:%M:%S"),
                 )
 
-                data = self.client.get_power(
-                    site_id=site_reader.site_id,
-                    start_time=start_time,
-                    end_time=end_time,
-                )
-
-                if data:
-                    data_to_save = [
-                        Number(
-                            asset=site_reader.asset.id,
-                            attribute=site_reader.attribute.id,
-                            value=value["value"],
-                            timestamp=value["date"],
-                        )
-                        for value in data[site_reader.resource]["values"]
-                        if (
-                            value["value"] is not None
-                            and value["date"] > self._checkpoints[site_reader]
-                        )
-                    ]
-                    self.datalake_client.save(instances=data_to_save)
-                    if data_to_save:
-                        self._checkpoints[site_reader] = max(
-                            self._checkpoints[site_reader],
-                            data_to_save[-1].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                        )
-                    logger.info(f"Power data added length: {len(data_to_save)}")
-                else:
-                    logger.info(f"No power data added, length: {len(data_to_save)}")
-
-            if site_reader.resource == "energy":
-                end_date = datetime.now()
-                start_date = datetime.now() - timedelta(
-                    days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS
-                )
-                resource = site_reader.resource
-
-                data = self.client.get_energy(
-                    site_id=site_reader.site_id,
-                    start_date=start_date,
-                    end_date=end_date,
-                )
-                data_to_save = []
-                if data:
-                    data_to_save = [
-                        Number(
-                            asset=site_reader.asset.id,
-                            attribute=site_reader.attribute.id,
-                            value=value["value"],
-                            timestamp=value["date"],
-                        )
-                        for value in data[site_reader.resource]["values"]
-                        if (
-                            value["value"] is not None
-                            and value["date"] > self._checkpoints[site_reader]
-                        )
-                    ]
-                    self.datalake_client.save(instances=data_to_save)
-                    if data_to_save:
-                        self._checkpoints[site_reader] = max(
-                            self._checkpoints[site_reader],
-                            data_to_save[-1].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                        )
-
-                    logger.info(f"Energy data added length: {len(data_to_save)}")
-                else:
-                    logger.info(f"No Energy data added, length: {len(data_to_save)}")
+            logger.info(
+                f"{site_reader.resource.capitalize()} data added length: {len(data_to_save)}")
 
         inverter_readers_grouped_by_id = {}
         for inverter in self._mappings["InverterReader"]:
             if inverter.serial_number in inverter_readers_grouped_by_id:
-                inverter_readers_grouped_by_id[inverter.serial_number].append(inverter)
+                inverter_readers_grouped_by_id[inverter.serial_number].append(
+                    inverter)
             else:
-                inverter_readers_grouped_by_id[inverter.serial_number] = [inverter]
+                inverter_readers_grouped_by_id[inverter.serial_number] = [
+                    inverter]
         for inverter_id in inverter_readers_grouped_by_id:
+
+            site_id = inverter_readers_grouped_by_id[inverter_id][0].site_id
+            serial_number = inverter_readers_grouped_by_id[inverter_id][0].serial_number
+            data_to_save = self.retrieve_inverter_data(
+                site_id=site_id, serial_number=serial_number)
+
+            for inverter_reader in inverter_readers_grouped_by_id[inverter_id]:
+                self.save_inverter_data(
+                    inverter_reader=inverter_reader, data_to_save=data_to_save)
+
+    def retrieve_site_data(self, site_reader):
+        if site_reader.resource == "power":
             end_time = datetime.now()
             start_time = datetime.now() - timedelta(
                 days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS
             )
 
-            data = self.client.get_inverter_data(
-                site_id=inverter.site_id,
-                inverter_id=inverter.serial_number,
+            data = self.client.get_power(
+                site_id=site_reader.site_id,
                 start_time=start_time,
                 end_time=end_time,
             )
-            if data:
-                for inverter_reader in inverter_readers_grouped_by_id[inverter_id]:
-                    data_to_save = []
-                    if "." in inverter_reader.resource:
-                        # per phase data
-                        phase, data_key = inverter_reader.resource.split(".")
-                        data_to_save = [
-                            Number(
-                                asset=inverter_reader.asset.id,
-                                attribute=inverter_reader.attribute.id,
-                                value=value[phase][data_key],
-                                timestamp=value["date"],
-                            )
-                            for value in data["data"]["telemetries"]
-                            if (
-                                phase in value
-                                and value[phase].get(data_key) is not None
-                                and value["date"] > self._checkpoints[inverter_reader]
-                            )
-                        ]
-                        if data_to_save:
-                            self.datalake_client.save(instances=data_to_save)
-                            self._checkpoints[inverter_reader] = max(
-                                self._checkpoints[inverter_reader],
-                                data_to_save[-1].timestamp.strftime(
-                                    "%Y-%m-%d %H:%M:%S"
-                                ),
-                            )
-                        logger.info(
-                            f"resource:{inverter_reader.resource}, data added length: {len(data_to_save)}"
-                        )
-                    else:
-                        # inverter data
-                        data_to_save = [
-                            Number(
-                                asset=inverter_reader.asset.id,
-                                attribute=inverter_reader.attribute.id,
-                                value=value[inverter_reader.resource],
-                                timestamp=value["date"],
-                            )
-                            for value in data["data"]["telemetries"]
-                            if (
-                                value.get(inverter_reader.resource) is not None
-                                and value["date"] > self._checkpoints[inverter_reader]
-                            )
-                        ]
-                        if data_to_save:
-                            self.datalake_client.save(instances=data_to_save)
-                            self._checkpoints[inverter_reader] = max(
-                                self._checkpoints[inverter_reader],
-                                data_to_save[-1].timestamp.strftime(
-                                    "%Y-%m-%d %H:%M:%S"
-                                ),
-                            )
 
-                        logger.info(
-                            f"{inverter_reader.resource} data added length: {len(data_to_save)}"
-                        )
+        elif site_reader.resource == "energy":
+            end_date = datetime.now()
+            start_date = datetime.now() - timedelta(
+                days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS
+            )
+
+            data = self.client.get_energy(
+                site_id=site_reader.site_id,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        if data:
+            data_to_save = [
+                Number(
+                    asset=site_reader.asset.id,
+                    attribute=site_reader.attribute.id,
+                    value=value["value"],
+                    timestamp=value["date"],
+                )
+                for value in data[site_reader.resource]["values"]
+                if (
+                    value["value"] is not None
+                    and value["date"] > self._checkpoints[site_reader]
+                )
+            ]
+            return data_to_save
+        else:
+            return []
+
+    def retrieve_inverter_data(self, site_id, serial_number):
+        end_time = datetime.now()
+        start_time = datetime.now() - timedelta(
+            days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS
+        )
+
+        data_to_save = self.client.get_inverter_data(
+            site_id=site_id,
+            inverter_id=serial_number,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        if data_to_save:
+            return data_to_save
+        else:
+            return []
+
+    def save_inverter_data(self, inverter_reader, data_to_save):
+        if "." in inverter_reader.resource:
+            # per phase data
+            phase, data_key = inverter_reader.resource.split(".")
+            data_to_save = [
+                Number(
+                    asset=inverter_reader.asset.id,
+                    attribute=inverter_reader.attribute.id,
+                    value=value[phase][data_key],
+                    timestamp=value["date"],
+                )
+                for value in data_to_save["data"]["telemetries"]
+                if (
+                    phase in value
+                    and value[phase].get(data_key) is not None
+                    and value["date"] > self._checkpoints[inverter_reader]
+                )
+            ]
+        else:
+            # inverter data
+            data_to_save = [
+                Number(
+                    asset=inverter_reader.asset.id,
+                    attribute=inverter_reader.attribute.id,
+                    value=value[inverter_reader.resource],
+                    timestamp=value["date"],
+                )
+                for value in data_to_save["data"]["telemetries"]
+                if (
+                    value.get(inverter_reader.resource) is not None
+                    and value["date"] > self._checkpoints[inverter_reader]
+                )
+            ]
+        if data_to_save:
+            self.datalake_client.save(instances=data_to_save)
+            self._checkpoints[inverter_reader] = max(
+                self._checkpoints[inverter_reader],
+                data_to_save[-1].timestamp.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+            )
+
+        logger.info(
+            f"{inverter_reader.resource} data added length: {len(data_to_save)}"
+        )
 
     def handle_mapping_create(
         self, reader: Union[SiteReader, InverterReader], mapping_type
