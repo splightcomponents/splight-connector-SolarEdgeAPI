@@ -236,32 +236,23 @@ class Main(AbstractComponent):
             reader, mapping_type="InverterReader"
         )
 
-    def handle_site_reader_delete(
-        self, site_attribute_to_delete: SiteReader
+    def handle_mapping_delete(
+        self, reader: Union[SiteReader, InverterReader], mapping_type
     ) -> None:
-        if site_attribute_to_delete in self._mappings["SiteReader"]:
-            self._mappings["SiteReader"].remove(site_attribute_to_delete)
-            logger.info(
-                f"Deleted mapping for object_address {site_attribute_to_delete}"
-            )
+        if reader in self._mappings[mapping_type]:
+            self._mappings[mapping_type].remove(reader)
+            self._checkpoints.remove(reader)
+            logger.info(f"Deleted mapping for object_address {reader}")
         else:
-            logger.info(
-                f"No existing mapping for object_address {site_attribute_to_delete}"
-            )
+            logger.info(f"No existing mapping for object_address {reader}")
 
-    def handle_inverter_reader_delete(
-        self, site_attribute_to_delete: InverterReader
-    ) -> None:
-        if site_attribute_to_delete in self._mappings["InverterReader"]:
-            self._mappings["InverterReader"].remove(site_attribute_to_delete)
-            self._checkpoints.remove(site_attribute_to_delete)
-            logger.info(
-                f"Deleted mapping for object_address {site_attribute_to_delete}"
-            )
-        else:
-            logger.info(
-                f"No existing mapping for object_address {site_attribute_to_delete}"
-            )
+    def handle_site_reader_delete(self, reader: SiteReader) -> None:
+        self.handle_mapping_delete(reader=reader, mapping_type="SiteReader")
+
+    def handle_inverter_reader_delete(self, reader: InverterReader) -> None:
+        self.handle_mapping_delete(
+            reader=reader, mapping_type="InverterReader"
+        )
 
     def site_attribute_to_dict(self, new_site_attribute: SiteReader) -> Dict:
         _dict = {
