@@ -38,12 +38,12 @@ class Main(AbstractComponent):
         self._fetch_existing_mappings()
 
     def _fetch_existing_mappings(self):
-        self._mappings["SiteReader"]: List[SiteReader] = self.database_client.get(
-            self.custom_types.SiteReader
-        )
-        self._mappings["InverterReader"]: List[SiteReader] = self.database_client.get(
-            self.custom_types.InverterReader
-        )
+        self._mappings["SiteReader"]: List[
+            SiteReader
+        ] = self.database_client.get(self.custom_types.SiteReader)
+        self._mappings["InverterReader"]: List[
+            SiteReader
+        ] = self.database_client.get(self.custom_types.InverterReader)
 
         for mapping_type, mappings in self._mappings.items():
             for mapping in mappings:
@@ -51,7 +51,9 @@ class Main(AbstractComponent):
                     pytz.timezone("utc")
                     .localize(
                         datetime.utcnow()
-                        - timedelta(days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS)
+                        - timedelta(
+                            days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS
+                        )
                     )
                     .strftime("%Y-%m-%d %H:%M:%S")
                 )
@@ -76,31 +78,36 @@ class Main(AbstractComponent):
                 self.datalake_client.save(instances=data_to_save)
                 self._checkpoints[site_reader] = max(
                     self._checkpoints[site_reader],
-                    data_to_save[-1].timestamp.strftime(
-                        "%Y-%m-%d %H:%M:%S"),
+                    data_to_save[-1].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
                 )
 
             logger.info(
-                f"{site_reader.resource.capitalize()} data added length: {len(data_to_save)}")
+                f"{site_reader.resource.capitalize()} data added length: {len(data_to_save)}"
+            )
 
         inverter_readers_grouped_by_id = {}
         for inverter in self._mappings["InverterReader"]:
             if inverter.serial_number in inverter_readers_grouped_by_id:
                 inverter_readers_grouped_by_id[inverter.serial_number].append(
-                    inverter)
+                    inverter
+                )
             else:
                 inverter_readers_grouped_by_id[inverter.serial_number] = [
-                    inverter]
+                    inverter
+                ]
         for inverter_id in inverter_readers_grouped_by_id:
-
             site_id = inverter_readers_grouped_by_id[inverter_id][0].site_id
-            serial_number = inverter_readers_grouped_by_id[inverter_id][0].serial_number
+            serial_number = inverter_readers_grouped_by_id[inverter_id][
+                0
+            ].serial_number
             data_to_save = self.retrieve_inverter_data(
-                site_id=site_id, serial_number=serial_number)
+                site_id=site_id, serial_number=serial_number
+            )
 
             for inverter_reader in inverter_readers_grouped_by_id[inverter_id]:
                 self.save_inverter_data(
-                    inverter_reader=inverter_reader, data_to_save=data_to_save)
+                    inverter_reader=inverter_reader, data_to_save=data_to_save
+                )
 
     def retrieve_site_data(self, site_reader):
         if site_reader.resource == "power":
@@ -198,9 +205,7 @@ class Main(AbstractComponent):
             self.datalake_client.save(instances=data_to_save)
             self._checkpoints[inverter_reader] = max(
                 self._checkpoints[inverter_reader],
-                data_to_save[-1].timestamp.strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
+                data_to_save[-1].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             )
 
         logger.info(
@@ -227,9 +232,13 @@ class Main(AbstractComponent):
         return self.handle_mapping_create(reader, mapping_type="SiteReader")
 
     def handle_inverter_reader_create(self, reader: InverterReader):
-        return self.handle_mapping_create(reader, mapping_type="InverterReader")
+        return self.handle_mapping_create(
+            reader, mapping_type="InverterReader"
+        )
 
-    def handle_site_reader_delete(self, site_attribute_to_delete: SiteReader) -> None:
+    def handle_site_reader_delete(
+        self, site_attribute_to_delete: SiteReader
+    ) -> None:
         if site_attribute_to_delete in self._mappings["SiteReader"]:
             self._mappings["SiteReader"].remove(site_attribute_to_delete)
             logger.info(
