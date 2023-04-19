@@ -27,12 +27,12 @@ class SolarEdgeAPIClient:
             "startTime": start_time_str,
             "endTime": end_time_str,
         }
-
         try:
             response = requests.get(url, params=params)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as err:
+            logger.info("HTTP error {err} for url: {url} failed.")
             return {}
 
     def get_energy(
@@ -49,12 +49,12 @@ class SolarEdgeAPIClient:
             "endDate": end_date_str,
             "timeUnit": "QUARTER_OF_AN_HOUR",
         }
-
         try:
             response = requests.get(url, params=params)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as err:
+            logger.info("HTTP error {err} for url: {url} failed.")
             return {}
 
     def get_inverter_data(
@@ -78,7 +78,5 @@ class SolarEdgeAPIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as err:
+            logger.info("HTTP error {err} for url: {url} failed.")
             return {}
-
-
-# client.get_energy(site_id=...)
