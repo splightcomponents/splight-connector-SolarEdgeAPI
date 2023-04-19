@@ -79,6 +79,3 @@ class SolarEdgeAPIClient:
             return response.json()
         except requests.exceptions.HTTPError as err:
             return {}
-
-
-# client.get_energy(site_id=...)
