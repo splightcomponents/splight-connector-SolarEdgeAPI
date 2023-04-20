@@ -95,16 +95,14 @@ class Main(AbstractComponent):
                 inverter_readers_grouped_by_id[inverter.serial_number] = [
                     inverter
                 ]
-        for inverter_id in inverter_readers_grouped_by_id:
-            site_id = inverter_readers_grouped_by_id[inverter_id][0].site_id
-            serial_number = inverter_readers_grouped_by_id[inverter_id][
-                0
-            ].serial_number
+        for inverter_id, inverters in inverter_readers_grouped_by_id.items():
+            site_id = inverters[0].site_id
+            serial_number = inverters[0].serial_number
             data_to_save = self.retrieve_inverter_data(
                 site_id=site_id, serial_number=serial_number
             )
 
-            for inverter_reader in inverter_readers_grouped_by_id[inverter_id]:
+            for inverter_reader in inverters:
                 self.save_inverter_data(
                     inverter_reader=inverter_reader, data_to_save=data_to_save
                 )
