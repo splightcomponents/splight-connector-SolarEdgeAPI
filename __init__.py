@@ -170,44 +170,45 @@ class Main(AbstractComponent):
     def save_inverter_data(
         self, inverter_reader: InverterReader, data_to_save: dict
     ) -> None:
-        if "." in inverter_reader.resource:
-            # per phase data
-            phase, data_key = inverter_reader.resource.split(".")
-            data_to_save = [
-                Number(
-                    asset=inverter_reader.asset.id,
-                    attribute=inverter_reader.attribute.id,
-                    value=value[phase][data_key],
-                    timestamp=value["date"],
-                )
-                for value in data_to_save["data"]["telemetries"]
-                if (
-                    phase in value
-                    and value[phase].get(data_key) is not None
-                    and value["date"] > self._checkpoints[inverter_reader]
-                )
-            ]
-        else:
-            # inverter data
-            data_to_save = [
-                Number(
-                    asset=inverter_reader.asset.id,
-                    attribute=inverter_reader.attribute.id,
-                    value=value[inverter_reader.resource],
-                    timestamp=value["date"],
-                )
-                for value in data_to_save["data"]["telemetries"]
-                if (
-                    value.get(inverter_reader.resource) is not None
-                    and value["date"] > self._checkpoints[inverter_reader]
-                )
-            ]
         if data_to_save:
-            self.datalake_client.save(instances=data_to_save)
-            self._checkpoints[inverter_reader] = max(
-                self._checkpoints[inverter_reader],
-                data_to_save[-1].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            )
+            if "." in inverter_reader.resource:
+                # per phase data
+                phase, data_key = inverter_reader.resource.split(".")
+                data_to_save = [
+                    Number(
+                        asset=inverter_reader.asset.id,
+                        attribute=inverter_reader.attribute.id,
+                        value=value[phase][data_key],
+                        timestamp=value["date"],
+                    )
+                    for value in data_to_save["data"]["telemetries"]
+                    if (
+                        phase in value
+                        and value[phase].get(data_key) is not None
+                        and value["date"] > self._checkpoints[inverter_reader]
+                    )
+                ]
+            else:
+                # inverter data
+                data_to_save = [
+                    Number(
+                        asset=inverter_reader.asset.id,
+                        attribute=inverter_reader.attribute.id,
+                        value=value[inverter_reader.resource],
+                        timestamp=value["date"],
+                    )
+                    for value in data_to_save["data"]["telemetries"]
+                    if (
+                        value.get(inverter_reader.resource) is not None
+                        and value["date"] > self._checkpoints[inverter_reader]
+                    )
+                ]
+            if data_to_save:
+                self.datalake_client.save(instances=data_to_save)
+                self._checkpoints[inverter_reader] = max(
+                    self._checkpoints[inverter_reader],
+                    data_to_save[-1].timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                )
 
         logger.info(
             f"{inverter_reader.resource} data added length: {len(data_to_save)}"

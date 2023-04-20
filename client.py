@@ -32,7 +32,7 @@ class SolarEdgeAPIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as err:
-            logger.info("{err}, for url: {url}")
+            logger.info(f"{err}, for url: {url}")
             return {}
 
     def get_energy(
@@ -54,7 +54,7 @@ class SolarEdgeAPIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as err:
-            logger.info("{err}, for url: {url}")
+            logger.info(f"{err}, for url: {url}")
             return {}
 
     def get_inverter_data(
@@ -78,5 +78,5 @@ class SolarEdgeAPIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as err:
-            logger.info("{err}, for url: {url}")
+            logger.info(f"{err}")
             return {}
