@@ -37,7 +37,7 @@ class Main(AbstractComponent):
         self.client = SolarEdgeAPIClient(api_key=self.input.api_key)
         self._fetch_existing_mappings()
 
-    def _fetch_existing_mappings(self):
+    def _fetch_existing_mappings(self) -> None:
         self._mappings["SiteReader"]: List[
             SiteReader
         ] = self.database_client.get(self.custom_types.SiteReader)
@@ -58,17 +58,7 @@ class Main(AbstractComponent):
                     .strftime("%Y-%m-%d %H:%M:%S")
                 )
 
-    def start(self) -> None:
-        self.execution_client.start(
-            Task(
-                handler=self.task,
-                args=(),
-                period=self.input.request_period,
-            )
-        )
-
-    def task(self) -> None:
-        logger.info(f"Current mappings: {self._mappings}")
+    def _process_site_readers(self) -> None:
         for site_reader in self._mappings["SiteReader"]:
             if site_reader.resource not in ["power", "energy"]:
                 continue
@@ -85,16 +75,13 @@ class Main(AbstractComponent):
                 f"{site_reader.resource.capitalize()} data added length: {len(data_to_save)}"
             )
 
-        inverter_readers_grouped_by_id = {}
-        for inverter in self._mappings["InverterReader"]:
-            if inverter.serial_number in inverter_readers_grouped_by_id:
-                inverter_readers_grouped_by_id[inverter.serial_number].append(
-                    inverter
-                )
-            else:
-                inverter_readers_grouped_by_id[inverter.serial_number] = [
-                    inverter
-                ]
+    def _process_inverter_readers(self) -> None:
+        inverter_readers_grouped_by_id = {
+            reader.serial_number: []
+            for reader in self._mappings["InverterReader"]
+        }
+        for reader in self._mappings["InverterReader"]:
+            inverter_readers_grouped_by_id[reader.serial_number].append(reader)
         for inverter_id, inverters in inverter_readers_grouped_by_id.items():
             site_id = inverters[0].site_id
             serial_number = inverters[0].serial_number
@@ -107,7 +94,21 @@ class Main(AbstractComponent):
                     inverter_reader=inverter_reader, data_to_save=data_to_save
                 )
 
-    def retrieve_site_data(self, site_reader: SiteReader):
+    def start(self) -> None:
+        self.execution_client.start(
+            Task(
+                handler=self.task,
+                args=(),
+                period=self.input.request_period,
+            )
+        )
+
+    def task(self) -> None:
+        logger.info(f"Current mappings: {self._mappings}")
+        self._process_site_readers()
+        self._process_inverter_readers()
+
+    def retrieve_site_data(self, site_reader: SiteReader) -> Dict:
         if site_reader.resource == "power":
             end_time = datetime.now()
             start_time = datetime.now() - timedelta(
@@ -147,9 +148,9 @@ class Main(AbstractComponent):
             ]
             return data_to_save
         else:
-            return []
+            return {}
 
-    def retrieve_inverter_data(self, site_id: str, serial_number: str):
+    def retrieve_inverter_data(self, site_id: str, serial_number: str) -> Dict:
         end_time = datetime.now()
         start_time = datetime.now() - timedelta(
             days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS
@@ -164,9 +165,11 @@ class Main(AbstractComponent):
         if data_to_save:
             return data_to_save
         else:
-            return []
+            return {}
 
-    def save_inverter_data(self, inverter_reader: InverterReader, data_to_save: dict):
+    def save_inverter_data(
+        self, inverter_reader: InverterReader, data_to_save: dict
+    ) -> None:
         if "." in inverter_reader.resource:
             # per phase data
             phase, data_key = inverter_reader.resource.split(".")
@@ -226,7 +229,7 @@ class Main(AbstractComponent):
             f"mapping added {self.site_attribute_to_dict(reader)}, chekpoint: {self._checkpoints[reader]}"
         )
 
-    def handle_site_reader_create(self, reader: SiteReader):
+    def handle_site_reader_create(self, reader: SiteReader) -> None:
         return self.handle_mapping_create(reader, mapping_type="SiteReader")
 
     def handle_inverter_reader_create(self, reader: InverterReader):
