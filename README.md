@@ -10,7 +10,7 @@
 
 ### Description
 
-COMPLETE COMPONENT DESCRIPTION
+This component serves as a connector to Solar Edge API. It allows to get site data such as power and energy, as well as inverters specific data, to be saved to Splight Platform.
 
 ### Input
 

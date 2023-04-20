@@ -91,15 +91,13 @@
                     "name": "site_id",
                     "type": "str",
                     "required": true,
-                    "multiple": false,
-                    "value": "2757509"
+                    "multiple": false
                 },
                 {
                     "name": "serial_number",
                     "type": "str",
                     "required": true,
-                    "multiple": false,
-                    "value": "7E04F27A-EE"
+                    "multiple": false
                 }
             ]
         }

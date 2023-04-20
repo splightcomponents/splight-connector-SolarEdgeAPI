@@ -109,7 +109,7 @@ class Main(AbstractComponent):
                     inverter_reader=inverter_reader, data_to_save=data_to_save
                 )
 
-    def retrieve_site_data(self, site_reader):
+    def retrieve_site_data(self, site_reader: SiteReader):
         if site_reader.resource == "power":
             end_time = datetime.now()
             start_time = datetime.now() - timedelta(
@@ -151,7 +151,7 @@ class Main(AbstractComponent):
         else:
             return []
 
-    def retrieve_inverter_data(self, site_id, serial_number):
+    def retrieve_inverter_data(self, site_id: str, serial_number: str):
         end_time = datetime.now()
         start_time = datetime.now() - timedelta(
             days=self._DEFAULT_CHECKPOINT_BACKWARDS_DAYS
@@ -168,7 +168,7 @@ class Main(AbstractComponent):
         else:
             return []
 
-    def save_inverter_data(self, inverter_reader, data_to_save):
+    def save_inverter_data(self, inverter_reader: InverterReader, data_to_save: dict):
         if "." in inverter_reader.resource:
             # per phase data
             phase, data_key = inverter_reader.resource.split(".")
@@ -213,7 +213,7 @@ class Main(AbstractComponent):
         )
 
     def handle_mapping_create(
-        self, reader: Union[SiteReader, InverterReader], mapping_type
+        self, reader: Union[SiteReader, InverterReader], mapping_type: str
     ) -> None:
         self._mappings[mapping_type].append(reader)
         self._checkpoints[reader] = (
