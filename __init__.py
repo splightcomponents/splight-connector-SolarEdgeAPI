@@ -168,7 +168,7 @@ class Main(AbstractComponent):
             return {}
 
     def save_inverter_data(
-        self, inverter_reader: InverterReader, data_to_save: dict
+        self, inverter_reader: InverterReader, data_to_save: Dict
     ) -> None:
         if data_to_save:
             if "." in inverter_reader.resource:
