@@ -1,0 +1,143 @@
+{
+    "name": "SolarEgeAPI",
+    "version": "1.0.0",
+    "tags": [
+        "connector"
+    ],
+    "splight_cli_version": "2.3.19",
+    "privacy_policy": "public",
+    "custom_types": [
+        {
+            "name": "SiteReader",
+            "fields": [
+                {
+                    "name": "asset",
+                    "type": "Asset",
+                    "required": true,
+                    "multiple": false
+                },
+                {
+                    "name": "attribute",
+                    "type": "Attribute",
+                    "required": true,
+                    "multiple": false,
+                    "depends_on": "asset"
+                },
+                {
+                    "name": "resource",
+                    "type": "str",
+                    "required": false,
+                    "multiple": false,
+                    "choices": [
+                        "power",
+                        "energy"
+                    ]
+                },
+                {
+                    "name": "site_id",
+                    "type": "str",
+                    "required": true,
+                    "multiple": false,
+                    "value": "2757509"
+                }
+            ]
+        },
+        {
+            "name": "InverterReader",
+            "fields": [
+                {
+                    "name": "asset",
+                    "type": "Asset",
+                    "required": true,
+                    "multiple": false
+                },
+                {
+                    "name": "attribute",
+                    "type": "Attribute",
+                    "required": true,
+                    "multiple": false,
+                    "depends_on": "asset"
+                },
+                {
+                    "name": "resource",
+                    "type": "str",
+                    "required": true,
+                    "multiple": false,
+                    "choices": [
+                        "totalActivePower",
+                        "dcVoltage",
+                        "groundFaultResistance",
+                        "powerLimit",
+                        "totalEnergy",
+                        "temperature",
+                        "vL1To2",
+                        "vL2To3",
+                        "vL3To1",
+                        "L1Data.activePower",
+                        "L1Data.acFrequency",
+                        "L1Data.apparentPower",
+                        "L1Data.cosPhi",
+                        "L2Data.activePower",
+                        "L2Data.acFrequency",
+                        "L2Data.apparentPower",
+                        "L2Data.cosPhi",
+                        "L3Data.activePower",
+                        "L3Data.acFrequency",
+                        "L3Data.apparentPower",
+                        "L3Data.cosPhi"
+                    ]
+                },
+                {
+                    "name": "site_id",
+                    "type": "str",
+                    "required": true,
+                    "multiple": false
+                },
+                {
+                    "name": "serial_number",
+                    "type": "str",
+                    "required": true,
+                    "multiple": false
+                }
+            ]
+        }
+    ],
+    "input": [
+        {
+            "name": "api_key",
+            "type": "str",
+            "required": true
+        },
+        {
+            "name": "request_period",
+            "type": "int",
+            "required": true,
+            "value": 600
+        }
+    ],
+    "output": [],
+    "commands": [],
+    "bindings": [
+        {
+            "name": "handle_site_reader_create",
+            "object_type": "SiteReader",
+            "object_action": "CREATE"
+        },
+        {
+            "name": "handle_site_reader_delete",
+            "object_type": "SiteReader",
+            "object_action": "DELETE"
+        },
+        {
+            "name": "handle_inverter_reader_create",
+            "object_type": "InverterReader",
+            "object_action": "CREATE"
+        },
+        {
+            "name": "handle_inverter_reader_delete",
+            "object_type": "InverterReader",
+            "object_action": "DELETE"
+        }
+    ],
+    "endpoints": []
+}
